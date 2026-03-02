@@ -1,71 +1,46 @@
 import sys
-import requests
-from bs4 import BeautifulSoup
+import time
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
 
-# Function to get title
-def get_title(soup):
-    if soup.title:
-        return soup.title.text
-    else:
-        return "No Title"
-
-
-# Function to get body
-def get_body(soup):
-    if soup.body:
-        return soup.body.get_text(separator=" ", strip=True)
-    else:
-        return "No Body"
-
-
-# Function to get links
-def get_links(soup):
-    links = []
-    for link in soup.find_all("a"):
-        href = link.get("href")
-        if href:
-            links.append(href)
-    return links
-
-
-# Main Program 
+# URL is given or not 
 if len(sys.argv) != 2:
-    print("Usage: python seir.py <URL>")
+    print("Please provide a URL")
     sys.exit()
 
 url = sys.argv[1]
-header = {'User-Agent': 'Mozilla/5.0'}
 
-# Fetch webpage
+# chrome settings
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+chrome_options.add_argument("--disable-gpu")
+
+# open browser
+browser = webdriver.Chrome(options=chrome_options)
+browser.get(url)
+
+# give page some time to load javascript
+time.sleep(3)
+
+# print title
+print("Title:", browser.title)
+
+# print body text
+print("\nBody:")
 try:
-    response = requests.get(url, headers=header)
+    page_body = browser.find_element(By.TAG_NAME, "body")
+    print(page_body.text)
 except:
-    print("Error fetching the URL")
-    sys.exit()
+    print("No Body")
 
-# Parse HTML
-soup = BeautifulSoup(response.text, "html.parser")
+# print links
+print("\nOutlinks:")
+all_links = browser.find_elements(By.TAG_NAME, "a")
+for item in all_links:
+    link = item.get_attribute("href")
+    if link:
+        print(link)
 
-# Call functions
-title = get_title(soup)
-body = get_body(soup)
-links = get_links(soup)
-
-# Print output
-print("Title page :", title)
-print("Body page :", body)
-print("ALL Links :")
-print(" ".join(links))
-
-
-# '''
-# PS C:\Users\Lenovo\OneDrive\Desktop\coding\SEM 4\SEIR_Python_project> python scraper.py https://example.com
-# Title page : Example Domain
-# Body page : Example Domain This domain is for use in documentation examples without needing permission. Avoid use in operations. Learn more
-# ALL Links :
-# https://iana.org/domains/example
-# PS C:\Users\Lenovo\OneDrive\Desktop\coding\SEM 4\SEIR_Python_project> python .\scraper.py https://univ.sitare.org/
-# Title page : Sitare University Program
-# Body page : You need to enable JavaScript to run this app.
-# ALL Links :
-# '''
+# close browser
+browser.quit()
