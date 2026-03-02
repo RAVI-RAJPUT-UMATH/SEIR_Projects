@@ -1,46 +1,57 @@
 import sys
-import time
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
+import requests
+from bs4 import BeautifulSoup
 
-# URL is given or not 
+# fetch page title
+def fetch_title(page):
+    if page.title:
+        return page.title.text
+    return "No Title"
+
+
+# fetch body text
+def fetch_body(page):
+    page_body = page.find("body")
+    if page_body:
+        return page_body.get_text(" ", strip=True)
+    return "No Body"
+
+
+# print all links from page
+def print_links(page):
+    links = page.find_all("a")
+    for item in links:
+        url = item.get("href")
+        if url and url.startswith("http"):
+            print(url)
+
+
+# check command line input
 if len(sys.argv) != 2:
     print("Please provide a URL")
-    sys.exit()
+    sys.exit(0)
 
-url = sys.argv[1]
+website_url = sys.argv[1]
 
-# chrome settings
-chrome_options = Options()
-chrome_options.add_argument("--headless")
-chrome_options.add_argument("--disable-gpu")
+request_headers = {
+    "User-Agent": "Mozilla/5.0"
+}
 
-# open browser
-browser = webdriver.Chrome(options=chrome_options)
-browser.get(url)
-
-# give page some time to load javascript
-time.sleep(3)
-
-# print title
-print("Title:", browser.title)
-
-# print body text
-print("\nBody:")
+# get webpage content
 try:
-    page_body = browser.find_element(By.TAG_NAME, "body")
-    print(page_body.text)
+    page_response = requests.get(website_url, headers=request_headers)
 except:
-    print("No Body")
+    print("Unable to fetch the URL")
+    sys.exit(0)
 
-# print links
-print("\nOutlinks:")
-all_links = browser.find_elements(By.TAG_NAME, "a")
-for item in all_links:
-    link = item.get_attribute("href")
-    if link:
-        print(link)
+# parse webpage html
+page_soup = BeautifulSoup(page_response.text, "html.parser")
 
-# close browser
-browser.quit()
+# display output
+print("Title:", fetch_title(page_soup))
+print()
+print("Body:")
+print(fetch_body(page_soup))
+print()
+print("Outlinks:")
+print_links(page_soup)
